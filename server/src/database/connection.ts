@@ -23,7 +23,7 @@ sequelize.authenticate()
         console.error("Unable to connect to the database:", error)
     })
 
-    sequelize.sync({ force: true })
+    sequelize.sync({ alter: false })
     .then(()=>{
         console.log("migrated successfully")
     })
