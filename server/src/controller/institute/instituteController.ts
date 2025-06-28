@@ -1,16 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import sequelize from "../../database/connection";
 import generateRandomInstituteNumber from "../../services/generateRendomInstitudeNumber";
-import User from "../../database/models/userModel";
 import { IExtendedRequest } from "../../middleware/type";
-import { log } from "console";
+import User from "../../database/models/userModel";
+import categories from "../../seed";
 
 
 
 
-const createInstitute = async (req:IExtendedRequest,res:Response,next:NextFunction)=>{        
+const createInstitute =  async (req:IExtendedRequest,res:Response,next:NextFunction)=>{
+     
     
-        console.log(req.user ,"Name from middleware")
         const {instituteName,instituteEmail,institutePhoneNumber,instituteAddress} = req.body 
         const instituteVatNo = req.body.instituteVatNo || null 
         const institutePanNo = req.body.institutePanNo || null
@@ -21,8 +21,9 @@ const createInstitute = async (req:IExtendedRequest,res:Response,next:NextFuncti
             return
         }
 
+
         const instituteNumber =   generateRandomInstituteNumber()  
-        await sequelize.query(`CREATE TABLE IF NOT EXISTS institute_${instituteNumber} (
+       await sequelize.query(`CREATE TABLE IF NOT EXISTS institute_${instituteNumber} (
             id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
             instituteName VARCHAR(255) NOT NULL, 
             instituteEmail VARCHAR(255) NOT NULL , 
@@ -34,38 +35,40 @@ const createInstitute = async (req:IExtendedRequest,res:Response,next:NextFuncti
             updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )`)
 
-     await sequelize.query(`INSERT INTO institute_${instituteNumber}(instituteName,instituteEmail,institutePhoneNumber,instituteAddress,institutePanNo,instituteVatNo) VALUES(?,?,?,?,?,?)`,{
+        await sequelize.query(`INSERT INTO institute_${instituteNumber}(instituteName,instituteEmail,institutePhoneNumber,instituteAddress,institutePanNo,instituteVatNo) VALUES(?,?,?,?,?,?)`,{
             replacements : [instituteName,instituteEmail,institutePhoneNumber,instituteAddress,institutePanNo,instituteVatNo]
         })
-
-       await sequelize.query(`CREATE TABLE IF NOT EXISTS user_institute(
+        await sequelize.query(`CREATE TABLE IF NOT EXISTS user_institute(
             id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, 
             userId VARCHAR(255) REFERENCES users(id), 
             instituteNumber INT UNIQUE 
             )`)
 
-
-     if(req.user){
+            if(req.user){
             await sequelize.query(`INSERT INTO user_institute(userId,instituteNumber) VALUES(?,?)`,{
                 replacements : [req.user.id,instituteNumber]
             })
 
-            await User.update({
-            currentInstituteNumber : instituteNumber,
+   
+
+           await User.update({
+            currentInstituteNumber : instituteNumber, 
             role : "institute"
-        },{
-            where :{
-                id : req.user.id
-            }
-        })
-    }
-    if(req.user){
-        req.user.currentInstituteNumber = instituteNumber
-    }
-    
+            },{
+                where : {
+                    id : req.user.id
+                }
+            })
+          }
+     
+          if(req.user){
+              req.user.currentInstituteNumber = instituteNumber  
+          }
+        
         next()
    
         
+      
     }
 
 
@@ -79,12 +82,18 @@ const createTeacherTable = async (req:IExtendedRequest,res:Response,next:NextFun
               teacherExpertise VARCHAR(255), 
               joinedDate DATE, 
               salary VARCHAR(100),
+              teacherPhoto VARCHAR(255), 
+              teacherPassword VARCHAR(255),
+              courseId VARCHAR(100) REFERENCES course_${instituteNumber}(id),
               createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
               updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
               )`)
-              next()  
+              next()
 }
+
 const createStudentTable = async(req:IExtendedRequest,res:Response,next:NextFunction)=>{
+    
+   
        try {
         const instituteNumber = req.user?.currentInstituteNumber
         await sequelize.query(`CREATE TABLE IF NOT EXISTS student_${instituteNumber}(
@@ -107,6 +116,7 @@ const createStudentTable = async(req:IExtendedRequest,res:Response,next:NextFunc
    
     
 }
+
 const createCourseTable = async(req:IExtendedRequest,res:Response)=>{
 
     const instituteNumber = req.user?.currentInstituteNumber 
@@ -118,15 +128,38 @@ const createCourseTable = async(req:IExtendedRequest,res:Response)=>{
         courseLevel ENUM('beginner','intermediate','advance') NOT NULL, 
         courseThumbnail VARCHAR(200),
         courseDescription TEXT, 
+        teacherId VARCHAR(36) REFERENCES teacher_${instituteNumber}(id), 
         categoryId VARCHAR(36) NOT NULL REFERENCES category_${instituteNumber} (id), 
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`)
 
         res.status(200).json({
-            message : "Institute created !!!", 
+            message : "Institute created vayoo!!!", 
             instituteNumber, 
         })
 }
 
-export  {createInstitute,createTeacherTable,createStudentTable,createCourseTable}
+const createCategoryTable = async(req:IExtendedRequest,res:Response,next:NextFunction)=>{
+    const instituteNumber = req.user?.currentInstituteNumber 
+    await sequelize.query(`CREATE TABLE IF NOT EXISTS category_${instituteNumber}(
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        categoryName VARCHAR(100) NOT NULL, 
+        categoryDescription TEXT,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`)
+
+        categories.forEach(async function(category){
+            await sequelize.query(`INSERT INTO category_${instituteNumber}(categoryName,categoryDescription) VALUES(?,?)`,{
+                replacements : [category.categoryName,category.categoryDescription]
+            })
+
+        })
+        next()
+
+}
+
+
+
+export  {createInstitute,createTeacherTable,createStudentTable,createCourseTable,createCategoryTable}
