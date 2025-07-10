@@ -1,9 +1,10 @@
 
+
 import {Table,Column,Model,DataType, PrimaryKey} from "sequelize-typescript"
 
 @Table({
-    tableName : 'users', 
-    modelName : 'User', 
+    tableName : 'users',
+    modelName : 'User',
     timestamps : true
 })
 
@@ -19,7 +20,7 @@ class User extends Model{
         type : DataType.STRING, 
    
     })
-    declare username : string 
+    declare userName : string 
 
     @Column({
         type : DataType.STRING
@@ -40,10 +41,7 @@ class User extends Model{
     @Column({
         type : DataType.STRING
     })
-    declare currentInstituteNumber : string 
-
-   
-
+    declare currentInstituteNumber : string   
 
 }
 

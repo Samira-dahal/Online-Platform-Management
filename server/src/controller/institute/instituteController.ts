@@ -9,6 +9,7 @@ import categories from "../../seed";
 
 
 const createInstitute =  async (req:IExtendedRequest,res:Response,next:NextFunction)=>{
+        // console.log("Triggered")
      
     
         const {instituteName,instituteEmail,institutePhoneNumber,instituteAddress} = req.body 
@@ -20,7 +21,11 @@ const createInstitute =  async (req:IExtendedRequest,res:Response,next:NextFunct
             })
             return
         }
+//test
 
+        // User.findByPk(req.user && req.user.id)
+        // aayo vane - insitute create garnu paryo --> insitute_123123, course_123132 
+        // institute (name)
 
         const instituteNumber =   generateRandomInstituteNumber()  
        await sequelize.query(`CREATE TABLE IF NOT EXISTS institute_${instituteNumber} (
@@ -38,6 +43,8 @@ const createInstitute =  async (req:IExtendedRequest,res:Response,next:NextFunct
         await sequelize.query(`INSERT INTO institute_${instituteNumber}(instituteName,instituteEmail,institutePhoneNumber,instituteAddress,institutePanNo,instituteVatNo) VALUES(?,?,?,?,?,?)`,{
             replacements : [instituteName,instituteEmail,institutePhoneNumber,instituteAddress,institutePanNo,instituteVatNo]
         })
+        // 
+        // to create user_institute history table jaha chai users le k k institute haru create garyo sabai ko number basnu paryo 
         await sequelize.query(`CREATE TABLE IF NOT EXISTS user_institute(
             id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, 
             userId VARCHAR(255) REFERENCES users(id), 
@@ -49,7 +56,9 @@ const createInstitute =  async (req:IExtendedRequest,res:Response,next:NextFunct
                 replacements : [req.user.id,instituteNumber]
             })
 
-   
+            // const user =  await User.findByPk(req.user.id)
+            // user?.currentInstituteNumber = instituteNumber
+            // await user?.save()
 
            await User.update({
             currentInstituteNumber : instituteNumber, 
@@ -65,29 +74,34 @@ const createInstitute =  async (req:IExtendedRequest,res:Response,next:NextFunct
               req.user.currentInstituteNumber = instituteNumber  
           }
         
+        // req.user?.instituteNumber = instituteNumber; 
         next()
    
         
       
     }
 
+// mysql doesn't support array like mongodb 
 
 const createTeacherTable = async (req:IExtendedRequest,res:Response,next:NextFunction)=>{
               const instituteNumber = req.user?.currentInstituteNumber
-              await sequelize.query(`CREATE TABLE IF NOT EXISTS teacher_${instituteNumber}(
-               id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()), 
-              teacherName VARCHAR(255) NOT NULL, 
-              teacherEmail VARCHAR(255) NOT NULL UNIQUE, 
-              teacherPhoneNumber VARCHAR(255) NOT NULL UNIQUE,
-              teacherExpertise VARCHAR(255), 
-              joinedDate DATE, 
-              salary VARCHAR(100),
-              teacherPhoto VARCHAR(255), 
-              teacherPassword VARCHAR(255),
-              courseId VARCHAR(100) REFERENCES course_${instituteNumber}(id),
-              createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-              updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-              )`)
+              await sequelize.query(`
+  CREATE TABLE IF NOT EXISTS teacher_${instituteNumber} (
+    id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    teacherName VARCHAR(255) NOT NULL,
+    teacherEmail VARCHAR(255) NOT NULL UNIQUE,
+    teacherPhoneNumber VARCHAR(255) NOT NULL UNIQUE,
+    teacherExpertise VARCHAR(255),
+    joinedDate DATE,
+    salary VARCHAR(100),
+    teacherPhoto VARCHAR(255),
+    teacherPassword VARCHAR(255),
+    courseId VARCHAR(36), -- no FK here
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  )
+`)
+
               next()
 }
 
@@ -118,27 +132,29 @@ const createStudentTable = async(req:IExtendedRequest,res:Response,next:NextFunc
 }
 
 const createCourseTable = async(req:IExtendedRequest,res:Response)=>{
-
     const instituteNumber = req.user?.currentInstituteNumber 
-    await sequelize.query(`CREATE TABLE IF NOT EXISTS course_${instituteNumber}(
-        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
-        courseName VARCHAR(255) NOT NULL UNIQUE, 
-        coursePrice VARCHAR(255) NOT NULL, 
-        courseDuration VARCHAR(100) NOT NULL, 
-        courseLevel ENUM('beginner','intermediate','advance') NOT NULL, 
-        courseThumbnail VARCHAR(200),
-        courseDescription TEXT, 
-        teacherId VARCHAR(36) REFERENCES teacher_${instituteNumber}(id), 
-        categoryId VARCHAR(36) NOT NULL REFERENCES category_${instituteNumber} (id), 
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )`)
+    await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS course_${instituteNumber} (
+            id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+            courseName VARCHAR(255) NOT NULL UNIQUE,
+            coursePrice VARCHAR(255) NOT NULL,
+            courseDuration VARCHAR(100) NOT NULL,
+            courseLevel ENUM('beginner','intermediate','advance') NOT NULL,
+            courseThumbnail VARCHAR(200),
+            courseDescription TEXT,
+            teacherId VARCHAR(36),
+            categoryId VARCHAR(36),
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `)
 
-        res.status(200).json({
-            message : "Institute created vayoo!!!", 
-            instituteNumber, 
-        })
+    res.status(200).json({
+        message : "Institute created vayoo!!!", 
+        instituteNumber, 
+    })
 }
+
 
 const createCategoryTable = async(req:IExtendedRequest,res:Response,next:NextFunction)=>{
     const instituteNumber = req.user?.currentInstituteNumber 
