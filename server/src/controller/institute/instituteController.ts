@@ -85,23 +85,20 @@ const createInstitute =  async (req:IExtendedRequest,res:Response,next:NextFunct
 
 const createTeacherTable = async (req:IExtendedRequest,res:Response,next:NextFunction)=>{
               const instituteNumber = req.user?.currentInstituteNumber
-              await sequelize.query(`
-  CREATE TABLE IF NOT EXISTS teacher_${instituteNumber} (
-    id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
-    teacherName VARCHAR(255) NOT NULL,
-    teacherEmail VARCHAR(255) NOT NULL UNIQUE,
-    teacherPhoneNumber VARCHAR(255) NOT NULL UNIQUE,
-    teacherExpertise VARCHAR(255),
-    joinedDate DATE,
-    salary VARCHAR(100),
-    teacherPhoto VARCHAR(255),
-    teacherPassword VARCHAR(255),
-    courseId VARCHAR(36), -- no FK here
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  )
-`)
-
+              await sequelize.query(`CREATE TABLE IF NOT EXISTS teacher_${instituteNumber}(
+               id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()), 
+              teacherName VARCHAR(255) NOT NULL, 
+              teacherEmail VARCHAR(255) NOT NULL UNIQUE, 
+              teacherPhoneNumber VARCHAR(255) NOT NULL UNIQUE,
+              teacherExpertise VARCHAR(255), 
+              joinedDate DATE, 
+              salary VARCHAR(100),
+              teacherPhoto VARCHAR(255), 
+              teacherPassword VARCHAR(255),
+              courseId VARCHAR(100) REFERENCES course_${instituteNumber}(id),
+              createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+              updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+              )`)
               next()
 }
 

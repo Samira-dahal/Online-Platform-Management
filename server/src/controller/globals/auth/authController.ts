@@ -1,10 +1,9 @@
 
-
 import {Request,Response} from "express"
 import User from "../../../database/models/userModel"
 import bcrypt from "bcrypt"
 import jwt from 'jsonwebtoken'
-
+import generateJWTToken from "../../../services/generateJWTToken"
 
 class AuthController{
    static async registerUser(req:Request,res:Response){
@@ -54,9 +53,7 @@ class AuthController{
     }else{
          const isPasswordMatch = bcrypt.compareSync(password,data[0].password)
          if(isPasswordMatch){
-           const token =  jwt.sign({id :data[0].id},'thisissecret',{
-            expiresIn : "30d"
-           })
+         const token = generateJWTToken({id:data[0].id})
             res.status(200).json({
                 token : token, 
                 message : "Logged in success"
@@ -77,9 +74,3 @@ class AuthController{
 export default AuthController
 
 
-// export  {registerUser}
-
-
-
-// token(jwt), session
-// cookie, localstorage
